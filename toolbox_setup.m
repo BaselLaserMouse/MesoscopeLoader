@@ -9,7 +9,6 @@ function toolbox_setup()
     % add toolbox examples and source directories to the path
     toolbox_folder = fileparts(mfilename('fullpath'));
     addpath(genpath(fullfile(toolbox_folder, 'src')));
-    addpath(genpath(fullfile(toolbox_folder, 'examples')));
 
     % create a folder for third-party packages
     thirdparty_folder = fullfile(toolbox_folder, 'thirdparty');
@@ -29,52 +28,11 @@ function toolbox_setup()
     gitget('https://github.com/DylanMuir/TensorStack', thirdparty_folder);
     gitget('https://bitbucket.org/lasermouse/TensorView', thirdparty_folder);
 
-    % retrieve CNMF and its depedencies
-    cnmf_folder = gitget( ...
-        'https://github.com/epnev/ca_source_extraction', thirdparty_folder);
-    addpath(genpath(fullfile(cnmf_folder, 'utilities')));
-
-    spgl1_folder = gitget('https://github.com/mpf/spgl1', thirdparty_folder);
-    wd = cd(spgl1_folder);
-    spgsetup;
-    cd(wd)
-
-    ca_sampler_folder = gitget( ...
-        'https://github.com/epnev/continuous_time_ca_sampler', ...
-        thirdparty_folder);
-    addpath(genpath(fullfile(ca_sampler_folder, 'utilities')));
-
-    switch computer()
-        case 'GLNXA64'
-            cvx_archive = 'cvx-a64.zip';
-        case 'MACI64'
-            cvx_archive = 'cvx-maci64.zip';
-        case 'PCWIN64'
-            cvx_archive = 'cvx-w64.zip';
-        otherwise
-            cvx_archive = [];
-            warning('Unknown platform for CVX.');
-    end
-
-    cvx_folder = fullfile(thirdparty_folder, 'cvx');
-    if ~isempty(cvx_archive)
-        cvx_url = sprintf('http://web.cvxr.com/cvx/%s', cvx_archive);
-        matget(cvx_url, cvx_folder);
-        wd = cd(fullfile(cvx_folder, 'cvx'));
-        cvx_setup;
-        cd(wd)
-    end
-
     % retrieve misc. dependencies
     uipick_folder = fullfile(thirdparty_folder, 'uipickfiles');
     matget(['http://www.mathworks.com/matlabcentral/mlc-downloads/', ...
             'downloads/submissions/10867/versions/14/download/zip'], ...
            uipick_folder);
-
-    ngpm_folder = fullfile(thirdparty_folder, 'NGPM');
-    matget(['http://www.mathworks.com/matlabcentral/mlc-downloads/', ...
-            'downloads/submissions/31166/versions/7/download/zip'], ...
-           ngpm_folder);
 end
 
 function repo_folder = gitget(repo, thirdparty_folder)
