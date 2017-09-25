@@ -63,32 +63,46 @@ function stacks = split_mroi_stack(stack, header)
         zs_idx = desc_idx;
     end
 
-    % get ROIs for each z-plane
+    % get ROIs dimensions for each z-plane
     n_si_rois = numel(si_rois);
-    stack_views = repmat({cell(1, nz)}, 1, n_si_rois);
+    n_rows = cell(nz, n_si_rois);
+    for i = 1:nz
+        for j = 1:n_si_rois
+            if si_rois(j).discretePlaneMode && ~ismember(zs(i), si_rois(j).zs)
+                continue;
+            end
+            n_rows{i, j} = si_rois(j).scanfields.pixelResolutionXY(2);
+        end
+    end
 
+    % deduce flyback frames from most filled z-plane
+    n_rows_sum = arrayfun(@(x) sum([n_rows{x, :}]), 1:nz);
+    [n_rows_max, idx_rows] = max(n_rows_sum);
+    n_rois_max = numel([n_rows{idx_rows, :}]);
+    n_flyback = (size(stack, 1) - n_rows_max) / max(1, (n_rois_max - 1));
+
+    % get ROIS for each z-plane
+    stack_views = cell(nz, n_si_rois);
     for i = 1:nz
         offset = 0;
         for j = 1:n_si_rois
-            si_roi = si_rois(j);
-            if si_roi.discretePlaneMode && ~ismember(zs(i), si_roi.zs)
+            if isempty(n_rows{i, j})
                 continue;
             end
-            xy = si_roi.scanfields.pixelResolutionXY;
-            rows = offset + (1:xy(2));
-            stack_views{j}{i} = TensorView(stack, rows, [], zs_idx(i));
-            offset = offset + xy(2);
+            rows = offset + (1:n_rows{i, j});
+            stack_views{i, j} = TensorView(stack, rows, [], zs_idx(i));
+            offset = offset + n_rows{i, j} + n_flyback;
         end
     end
 
     % concatenate multi-planes ScanImage ROIs
     stacks = cell(1, n_si_rois);
     for i = 1:n_si_rois
-        views_mask = ~cellfun(@isempty, stack_views{i});
+        views_mask = ~cellfun(@isempty, stack_views(:, i));
         if nnz(views_mask) == 1
-            stacks{i} = stack_views{i}{views_mask};
+            stacks{i} = stack_views{views_mask, i};
         else
-            stacks{i} = TensorStack(3, stack_views{i}{views_mask});
+            stacks{i} = TensorStack(3, stack_views{views_mask, i});
         end
     end
 end
